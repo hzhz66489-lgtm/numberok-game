@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import engine, Base, get_session
 from models import User, GarageItem, DrawnNumber
 from game_logic import RARITY, gen_number, roll_rarity
+from bot import start_bot
 
 
 ADMIN_IDS = [12345]
@@ -19,7 +21,14 @@ ADMIN_SECRET = "change_me_to_random_string_12345"
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Запускаем Telegram-бота в фоне
+    bot_task = asyncio.create_task(start_bot())
+
     yield
+
+    # Останавливаем бота при выключении
+    bot_task.cancel()
 
 
 app = FastAPI(lifespan=lifespan)
