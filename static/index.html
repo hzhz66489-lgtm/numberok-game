@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Номерок</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -414,16 +415,28 @@
 </div>
 
 <script>
-// ===== ID ИГРОКА =====
-let USER_ID = 12345;
+// ===== РЕАЛЬНЫЙ ID ИЗ TELEGRAM =====
+let USER_ID = null;
 
-if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-  const u = window.Telegram.WebApp.initDataUnsafe.user;
-  if (u && u.id) USER_ID = u.id;
-  if (window.Telegram.WebApp.ready) {
-    window.Telegram.WebApp.ready();
-    window.Telegram.WebApp.expand();
+if (window.Telegram && window.Telegram.WebApp) {
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+
+  if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    USER_ID = tg.initDataUnsafe.user.id;
   }
+}
+
+// Если открыто НЕ в Telegram — показываем заглушку
+if (!USER_ID) {
+  document.body.innerHTML =
+    '<div style="padding:40px 20px;text-align:center;color:#fff;font-family:sans-serif;">' +
+    '<h2 style="font-size:22px;">🚫 Открой игру через Telegram</h2>' +
+    '<p style="color:#aaa;font-size:14px;line-height:1.6;">Эта игра работает только внутри Telegram-бота.</p>' +
+    '<p style="color:#aaa;font-size:14px;line-height:1.6;">Перейди в <b>@russianplates_bot</b> и нажми кнопку «Играть».</p>' +
+    '</div>';
+  throw new Error('Not in Telegram');
 }
 
 // ===== API =====
