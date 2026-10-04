@@ -271,6 +271,13 @@
   .rar-rare { color: #4fc3f7; }
   .rar-epic { color: #ba68c8; }
   .rar-legend { color: #ffd700; text-shadow: 0 0 12px #ffd700; }
+
+  .not-tg {
+    padding: 40px 20px; text-align: center; color: #fff;
+    font-family: sans-serif;
+  }
+  .not-tg h2 { font-size: 22px; }
+  .not-tg p { color: #aaa; font-size: 14px; line-height: 1.6; }
 </style>
 </head>
 <body>
@@ -415,29 +422,31 @@
 </div>
 
 <script>
-// ===== РЕАЛЬНЫЙ ID ИЗ TELEGRAM =====
+// ===== ПРОВЕРКА: ТОЛЬКО В TELEGRAM =====
 let USER_ID = null;
 
 if (window.Telegram && window.Telegram.WebApp) {
   const tg = window.Telegram.WebApp;
   tg.ready();
   tg.expand();
-
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     USER_ID = tg.initDataUnsafe.user.id;
   }
 }
 
-// Если открыто НЕ в Telegram — показываем заглушку
 if (!USER_ID) {
   document.body.innerHTML =
-    '<div style="padding:40px 20px;text-align:center;color:#fff;font-family:sans-serif;">' +
-    '<h2 style="font-size:22px;">🚫 Открой игру через Telegram</h2>' +
-    '<p style="color:#aaa;font-size:14px;line-height:1.6;">Эта игра работает только внутри Telegram-бота.</p>' +
-    '<p style="color:#aaa;font-size:14px;line-height:1.6;">Перейди в <b>@russianplates_bot</b> и нажми кнопку «Играть».</p>' +
+    '<div class="not-tg">' +
+    '<h2>🚫 Открой игру через Telegram</h2>' +
+    '<p>Эта игра работает только внутри Telegram-бота.</p>' +
+    '<p>Перейди в <b>@russianplates_bot</b> и нажми кнопку «Играть».</p>' +
     '</div>';
-  throw new Error('Not in Telegram');
+} else {
+  // ===== ИНИЦИАЛИЗАЦИЯ ИГРЫ (только если в Telegram) =====
+  initGame();
 }
+
+function initGame() {
 
 // ===== API =====
 async function apiGet(path) {
@@ -706,14 +715,14 @@ function renderGarage(items) {
           (RARITY_NAMES[item.rarity] || item.rarity) +
         '</div>' +
       '</div>' +
-      '<button class="gi-sell" onclick="sellFromGarage(' + item.id + ')">' +
+      '<button class="gi-sell" onclick="window.sellFromGarage(' + item.id + ')">' +
         'Продать ' + item.price.toLocaleString('ru') + '₽' +
       '</button>' +
     '</div>';
   }).join('');
 }
 
-async function sellFromGarage(id) {
+window.sellFromGarage = async function(id) {
   try {
     const data = await apiPost('/api/sell/' + id);
     state.balance = Number(data.balance);
@@ -722,7 +731,7 @@ async function sellFromGarage(id) {
   } catch (e) {
     console.error(e);
   }
-}
+};
 
 async function sellAllGarage() {
   try {
@@ -846,8 +855,25 @@ function setMult(n) {
   closeModal();
 }
 
+// ===== ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ (для onclick в HTML) =====
+window.switchTab = switchTab;
+window.doSpin = doSpin;
+window.openMenu = openMenu;
+window.openCountry = openCountry;
+window.openRarity = openRarity;
+window.openMult = openMult;
+window.closeModal = closeModal;
+window.closePopup = closePopup;
+window.setCountry = setCountry;
+window.setRarity = setRarity;
+window.setMult = setMult;
+window.sellAllGarage = sellAllGarage;
+window.spinWheel = spinWheel;
+
 // ===== СТАРТ =====
 loadProfile();
+
+}
 </script>
 </body>
 </html>
