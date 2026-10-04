@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Номерок</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f14; color: #fff; user-select: none;
+    overflow: hidden;
+  }
+  body { display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+  .menu-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: #1c1c24; border: none; color: #fff;
+    font-size: 20px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .menu-btn:active { background: #2a2a35; }
+  .level-box {
+    display: flex; align-items: center; gap: 8px;
+    background: #1c1c24; border-radius: 12px; padding: 8px 12px;
+  }
+  .level-box .lvl { font-weight: 800; font-size: 13px; }
+  .level-bar {
+    width: 50px; height: 6px; background: #2a2a35;
+    border-radius: 3px; overflow: hidden;
+  }
+  .level-bar div {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #4ade80, #22c55e);
+    transition: width .3s;
+  }
+  .balance-box { margin-left: auto; text-align: right; padding-right: 4px; }
+  .balance-box .label { font-size: 10px; color: #888; }
+  .balance-box .value { font-size: 17px; font-weight: 800; color: #4ade80; }
+
+  .tabs { display: flex; gap: 6px; padding: 0 12px 10px; }
+  .tab {
+    flex: 1; padding: 11px 4px; text-align: center;
+    background: #1c1c24; border-radius: 12px;
+    font-weight: 700; font-size: 13px; color: #888;
+    cursor: pointer; border: none; font-family: inherit;
+    transition: .15s;
+  }
+  .tab.active { background: #4ade80; color: #0f0f14; }
+
+  .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+  .view.active { display: flex; }
+
+  .center {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; padding: 10px 12px;
+  }
+  .plate {
+    display: flex; background: #fff; border: 3px solid #000;
+    border-radius: 6px; overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+    font-family: 'Arial Narrow', 'Arial', sans-serif;
+    transition: .2s;
+  }
+  .plate .main { padding: 8px 10px; display: flex; align-items: center; gap: 2px; }
+  .plate .region {
+    background: #fff; border-left: 3px solid #000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 4px 6px; min-width: 42px;
+  }
+  .plate .letter, .plate .digits {
+    font-size: 40px; font-weight: 900; color: #000; line-height: 1;
+  }
+  .plate .digits { letter-spacing: 1px; }
+  .plate .r-code { font-size: 20px; font-weight: 900; color: #000; line-height: 1; }
+  .plate .r-label { font-size: 8px; font-weight: 700; color: #000; }
+  .plate .flag-sm { font-size: 12px; }
+  .plate-empty .letter, .plate-empty .digits, .plate-empty .r-code { color: #ccc; }
+
+  .status { font-size: 13px; color: #888; margin-top: 12px; text-align: center; }
+
+  .settings { display: flex; gap: 6px; padding: 10px 12px; }
+  .setting {
+    flex: 1; background: #1c1c24; border-radius: 12px;
+    padding: 10px 6px; text-align: center; cursor: pointer;
+    border: none; color: #fff; font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    overflow: hidden; white-space: nowrap; font-family: inherit;
+  }
+  .setting:active { background: #2a2a35; }
+
+  .spin-wrap { padding: 0 12px 12px; }
+  .spin-btn {
+    width: 100%; background: linear-gradient(135deg, #4ade80, #22c55e);
+    color: #0f0f14; border: none; padding: 16px 24px;
+    border-radius: 14px; font-weight: 900; font-size: 17px;
+    cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 6px 20px rgba(74,222,128,0.3);
+    transition: .15s; font-family: inherit;
+  }
+  .spin-btn:active { transform: scale(0.98); }
+  .spin-btn:disabled { background: #333; color: #666; box-shadow: none; cursor: not-allowed; }
+  .spin-btn .price {
+    background: rgba(0,0,0,0.2); padding: 6px 12px;
+    border-radius: 8px; font-size: 13px;
+  }
+
+  .garage-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px;
+  }
+  .garage-count { font-size: 13px; color: #888; }
+  .garage-count b { color: #4ade80; }
+  .sell-all-btn {
+    background: #2a2a35; border: none; color: #fff;
+    padding: 8px 14px; border-radius: 10px;
+    font-size: 12px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+  .sell-all-btn:active { background: #3a3a48; }
+
+  .garage-list {
+    flex: 1; overflow-y: auto;
+    padding: 0 12px 12px;
+  }
+  .garage-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1c1c24; border-radius: 12px;
+    padding: 10px 12px; margin-bottom: 8px;
+    border-left: 4px solid #666;
+  }
+  .garage-item .gi-num {
+    font-family: 'Arial', sans-serif; font-weight: 900;
+    font-size: 16px; color: #fff; margin-bottom: 2px;
+  }
+  .garage-item .gi-rar { font-size: 11px; }
+  .garage-item .gi-sell {
+    background: #2e7d32; border: none; color: #fff;
+    padding: 8px 12px; border-radius: 8px;
+    font-size: 11px; font-weight: 700; cursor: pointer;
+    font-family: inherit;
+  }
+  .garage-item .gi-sell:active { background: #1b5e20; }
+  .garage-empty {
+    text-align: center; color: #666;
+    padding: 60px 20px; font-size: 13px; line-height: 1.6;
+  }
+  .garage-empty .ge-icon { font-size: 48px; margin-bottom: 12px; display: block; }
+
+  .wheel-container {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .wheel {
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: conic-gradient(
+      #ff6b6b 0deg 45deg,
+      #4ecdc4 45deg 90deg,
+      #ffe66d 90deg 135deg,
+      #a78bfa 135deg 180deg,
+      #f472b6 180deg 225deg,
+      #60a5fa 225deg 270deg,
+      #fb923c 270deg 315deg,
+      #34d399 315deg 360deg
+    );
+    border: 8px solid #1c1c24;
+    position: relative;
+    box-shadow: 0 0 30px rgba(74,222,128,0.4);
+    transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+  }
+  .wheel-center {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 60px;
+    background: #1c1c24; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px;
+    border: 4px solid #4ade80;
+  }
+  .wheel-spin-btn {
+    margin-top: 24px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #0f0f14; border: none;
+    padding: 16px 48px; border-radius: 14px;
+    font-weight: 900; font-size: 17px;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 20px rgba(251,191,36,0.4);
+  }
+  .wheel-spin-btn:active { transform: scale(0.97); }
+  .wheel-spin-btn:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+  .wheel-result {
+    margin-top: 16px; font-size: 16px;
+    font-weight: 800; text-align: center;
+    min-height: 24px; color: #4ade80;
+  }
+
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    display: none; justify-content: center; align-items: flex-end;
+    z-index: 200;
+  }
+  .modal.show { display: flex; }
+  .modal-box {
+    background: #1c1c24; border-radius: 20px 20px 0 0;
+    padding: 20px; width: 100%; max-width: 480px;
+    max-height: 80vh; overflow-y: auto;
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-title { font-size: 17px; font-weight: 800; margin-bottom: 14px; text-align: center; }
+
+  .mode-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #25252f; border-radius: 12px;
+    padding: 13px 14px; margin-bottom: 8px;
+    cursor: pointer; border: 2px solid transparent;
+  }
+  .mode-item.active { border-color: #4ade80; background: #1e2e24; }
+  .mode-item:active { transform: scale(0.98); }
+  .mode-item .m-name { font-weight: 700; font-size: 14px; }
+  .mode-item .m-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .mode-item .m-price { font-weight: 800; color: #4ade80; font-size: 14px; }
+
+  .menu-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; margin-bottom: 12px;
+  }
+  .menu-item {
+    background: #25252f; border-radius: 12px;
+    padding: 14px 4px; text-align: center;
+    cursor: pointer; font-size: 11px; font-weight: 600;
+  }
+  .menu-item:active { background: #33333f; }
+  .menu-item .mi-icon { font-size: 22px; display: block; margin-bottom: 4px; }
+
+  .popup {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; justify-content: center; align-items: center;
+    z-index: 300; padding: 20px;
+  }
+  .popup.show { display: flex; }
+  .popup-box {
+    background: #1c1c24; border-radius: 20px; padding: 24px 20px;
+    max-width: 340px; width: 100%; text-align: center;
+    border: 2px solid #4ade80;
+    animation: popIn .3s ease;
+  }
+  @keyframes popIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .popup-rar { font-size: 15px; font-weight: 800; margin-bottom: 12px; }
+  .popup-num {
+    background: #fff; color: #000; display: inline-block;
+    padding: 10px 16px; border-radius: 6px;
+    font-family: 'Arial', sans-serif; font-weight: 900;
+    font-size: 22px; margin-bottom: 12px; border: 2px solid #000;
+  }
+  .popup-msg { font-size: 13px; color: #aaa; margin-bottom: 16px; white-space: pre-line; }
+  .popup-btn {
+    background: #4ade80; color: #0f0f14; border: none;
+    padding: 12px 40px; border-radius: 10px;
+    font-weight: 800; font-size: 15px; cursor: pointer; font-family: inherit;
+  }
+
+  .rar-common { color: #b0b0b0; }
+  .rar-rare { color: #4fc3f7; }
+  .rar-epic { color: #ba68c8; }
+  .rar-legend { color: #ffd700; text-shadow: 0 0 12px #ffd700; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="menu-btn" onclick="openMenu()">☰</button>
+  <div class="level-box">
+    <div class="lvl">Ур. <span id="lvlNum">1</span></div>
+    <div class="level-bar"><div id="lvlBar" style="width:0%"></div></div>
+  </div>
+  <div class="balance-box">
+    <div class="label">Баланс</div>
+    <div class="value" id="balance">...</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-view="game" onclick="switchTab('game')">🎰 Крутка</button>
+  <button class="tab" data-view="garage" onclick="switchTab('garage')">🏠 Гараж</button>
+  <button class="tab" data-view="wheel" onclick="switchTab('wheel')">🎡 Фортуна</button>
+</div>
+
+<div class="view active" id="view-game">
+  <div class="center">
+    <div class="plate plate-empty" id="plate">
+      <div class="main">
+        <span class="letter" id="p-l1">А</span>
+        <span class="digits" id="p-num">000</span>
+        <span class="letter" id="p-l2">В</span>
+        <span class="letter" id="p-l3">С</span>
+      </div>
+      <div class="region">
+        <span class="r-code" id="p-region">77</span>
+        <span class="r-label">RUS</span>
+        <span class="flag-sm">🇷🇺</span>
+      </div>
+    </div>
+    <div class="status">Готов к игре</div>
+  </div>
+
+  <div class="settings">
+    <button class="setting" onclick="openCountry()">🇷🇺 Россия</button>
+    <button class="setting" onclick="openRarity()">💎 Любая</button>
+    <button class="setting" onclick="openMult()">×1</button>
+  </div>
+
+  <div class="spin-wrap">
+    <button class="spin-btn" id="spinBtn" onclick="doSpin()">
+      <span>Крутить</span>
+      <span class="price" id="spinPrice">1 000 ₽</span>
+    </button>
+  </div>
+</div>
+
+<div class="view" id="view-garage">
+  <div class="garage-header">
+    <div class="garage-count">Всего: <b id="garageCount">0</b></div>
+    <button class="sell-all-btn" onclick="sellAllGarage()">💰 Продать всё</button>
+  </div>
+  <div class="garage-list" id="garageList"></div>
+</div>
+
+<div class="view" id="view-wheel">
+  <div class="wheel-container">
+    <div class="wheel" id="wheel">
+      <div class="wheel-center">🍀</div>
+    </div>
+    <button class="wheel-spin-btn" id="wheelSpinBtn" onclick="spinWheel()">Вращать колесо</button>
+    <div class="wheel-result" id="wheelResult"></div>
+  </div>
+</div>
+
+<div class="modal" id="countryModal" onclick="closeModal(event,'countryModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Страна номера</div>
+    <div class="mode-item active" id="country-ru" onclick="setCountry('ru','Россия','🇷🇺')">
+      <div class="m-name">🇷🇺 Россия</div>
+    </div>
+    <div class="mode-item" id="country-by" onclick="setCountry('by','Беларусь','🇧🇾')">
+      <div class="m-name">🇧🇾 Беларусь</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="rarityModal" onclick="closeModal(event,'rarityModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Гарантия редкости</div>
+    <div class="mode-item active" data-rar="any" onclick="setRarity('any','Любая',1000)">
+      <div><div class="m-name">🎲 Любая</div><div class="m-sub">без гарантии</div></div>
+      <div class="m-price">1 000 ₽</div>
+    </div>
+    <div class="mode-item" data-rar="uncommon" onclick="setRarity('uncommon','Необычный+',8000)">
+      <div><div class="m-name">🟢 Необычный+</div><div class="m-sub">×8 к цене</div></div>
+      <div class="m-price">8 000 ₽</div>
+    </div>
+    <div class="mode-item" data-rar="rare" onclick="setRarity('rare','Редкий+',35000)">
+      <div><div class="m-name">🔵 Редкий+</div><div class="m-sub">×35 к цене</div></div>
+      <div class="m-price">35 000 ₽</div>
+    </div>
+    <div class="mode-item" data-rar="epic" onclick="setRarity('epic','Эпический+',110000)">
+      <div><div class="m-name">🟣 Эпический+</div><div class="m-sub">×110 к цене</div></div>
+      <div class="m-price">110 000 ₽</div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="multModal" onclick="closeModal(event,'multModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Количество круток</div>
+    <div class="mode-item active" data-mult="1" onclick="setMult(1)">
+      <div class="m-name">×1</div>
+    </div>
+    <div class="mode-item" data-mult="5" onclick="setMult(5)">
+      <div><div class="m-name">×5</div><div class="m-sub">быстрее</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="menuModal" onclick="closeModal(event,'menuModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-title">Меню</div>
+    <div class="menu-grid">
+      <div class="menu-item" onclick="alert('Автопарк — скоро!')"><span class="mi-icon">🚗</span>Автопарк</div>
+      <div class="menu-item" onclick="alert('Рынок — скоро!')"><span class="mi-icon">💰</span>Рынок</div>
+      <div class="menu-item" onclick="alert('Задания — скоро!')"><span class="mi-icon">📋</span>Задания</div>
+      <div class="menu-item" onclick="alert('Друзья — скоро!')"><span class="mi-icon">👥</span>Друзья</div>
+      <div class="menu-item" onclick="alert('Подарок — скоро!')"><span class="mi-icon">🎁</span>Подарок</div>
+    </div>
+    <div class="mode-item" onclick="closeModal()">
+      <div class="m-name">❌ Закрыть</div>
+    </div>
+  </div>
+</div>
+
+<div class="popup" id="popup">
+  <div class="popup-box">
+    <div class="popup-rar" id="pop-rar">Обычная</div>
+    <div class="popup-num" id="pop-num">А000ВС 77</div>
+    <div class="popup-msg" id="pop-msg">+500 ₽</div>
+    <button class="popup-btn" onclick="closePopup()">ОК</button>
+  </div>
+</div>
+
+<script>
+// ===== ID ИГРОКА =====
+let USER_ID = 12345;
+
+if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
+  const u = window.Telegram.WebApp.initDataUnsafe.user;
+  if (u && u.id) USER_ID = u.id;
+  if (window.Telegram.WebApp.ready) {
+    window.Telegram.WebApp.ready();
+    window.Telegram.WebApp.expand();
+  }
+}
+
+// ===== API =====
+async function apiGet(path) {
+  const res = await fetch(path, {
+    headers: { 'X-User-Id': String(USER_ID) }
+  });
+  if (!res.ok) throw new Error('API error: ' + res.status);
+  return res.json();
+}
+
+async function apiPost(path) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'X-User-Id': String(USER_ID) }
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'API error: ' + res.status);
+  }
+  return res.json();
+}
+
+// ===== СОСТОЯНИЕ =====
+let state = {
+  balance: 0,
+  level: 1,
+  xp: 0,
+  xpNeeded: 10,
+  country: 'ru',
+  countryName: 'Россия',
+  countryFlag: '🇷🇺',
+  rarity: 'any',
+  rarityName: 'Любая',
+  rarityPrice: 1000,
+  multiplier: 1,
+  spinning: false
+};
+
+// ===== ЗАГРУЗКА ПРОФИЛЯ =====
+async function loadProfile() {
+  try {
+    const data = await apiGet('/api/profile');
+    state.balance = Number(data.balance);
+    state.level = Number(data.level);
+    state.xp = Number(data.xp);
+    state.xpNeeded = Number(data.xp_needed);
+    updateUI();
+  } catch (e) {
+    console.error('Профиль не загрузился:', e);
+    document.getElementById('balance').textContent = 'Ошибка';
+  }
+}
+
+// ===== УТИЛИТЫ =====
+const LETTERS_RU = ['А','В','Е','К','М','Н','О','Р','С','Т','У','Х'];
+const LETTERS_BY = ['A','B','C','E','I','K','M','H','O','P','T','X'];
+const REGIONS_RU = ['01','02','23','32','47','52','55','64','77','78','99','777','799'];
+const REGIONS_BY = ['1','2','3','4','5','6','7'];
+
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function randDigits(n) { return String(Math.floor(Math.random() * Math.pow(10, n))).padStart(n, '0'); }
+
+function genFakeNumber() {
+  if (state.country === 'by') {
+    return { l1: rand(LETTERS_BY), l2: rand(LETTERS_BY),
+      digits: randDigits(4), region: rand(REGIONS_BY), format: 'by' };
+  }
+  return { l1: rand(LETTERS_RU), l2: rand(LETTERS_RU), l3: rand(LETTERS_RU),
+    digits: randDigits(3), region: rand(REGIONS_RU), format: 'ru' };
+}
+
+function parseNumberString(numStr, country) {
+  if (country === 'by') {
+    const parts = numStr.split(' ');
+    const lettersPart = parts[1].split('-');
+    return {
+      digits: parts[0],
+      l1: lettersPart[0][0],
+      l2: lettersPart[0][1],
+      l3: '',
+      region: lettersPart[1],
+      format: 'by'
+    };
+  }
+  const parts = numStr.split(' ');
+  const lettersPart = parts[0];
+  const region = parts[1];
+  return {
+    l1: lettersPart[0],
+    digits: lettersPart.slice(1, 4),
+    l2: lettersPart[4],
+    l3: lettersPart[5],
+    region,
+    format: 'ru'
+  };
+}
+
+// ===== КРУТКА =====
+async function doSpin() {
+  if (state.spinning) return;
+  state.spinning = true;
+  document.getElementById('spinBtn').disabled = true;
+
+  let count = 0;
+  const interval = setInterval(() => {
+    updatePlate(genFakeNumber());
+    count++;
+    if (count > 8) {
+      clearInterval(interval);
+      finishSpinFromServer();
+    }
+  }, 40);
+}
+
+async function finishSpinFromServer() {
+  try {
+    const singleCost = state.rarityPrice;
+    const totalCount = state.multiplier;
+
+    let bestResult = null;
+    let totalEarned = 0;
+    let garageCount = 0;
+    let lastBalance = state.balance;
+    let lastLevel = state.level;
+    let lastXp = state.xp;
+    let lastXpNeeded = state.xpNeeded;
+    let leveledUpTotal = false;
+    const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legend'];
+
+    for (let i = 0; i < totalCount; i++) {
+      const url = '/api/spin?country=' + state.country
+                + '&guarantee=' + state.rarity
+                + '&cost=' + singleCost;
+      const data = await apiPost(url);
+
+      const dataMult = data.total_mult || 1;
+      const bestMult = bestResult ? (bestResult.total_mult || 1) : 0;
+      if (!bestResult
+          || rarityOrder.indexOf(data.rarity) > rarityOrder.indexOf(bestResult.rarity)
+          || dataMult > bestMult) {
+        bestResult = data;
+      }
+      totalEarned += data.earned;
+      if (data.to_garage) garageCount++;
+
+      lastBalance = Number(data.balance);
+      lastLevel = Number(data.level);
+      lastXp = Number(data.xp);
+      lastXpNeeded = Number(data.xp_needed);
+      if (data.leveled_up) leveledUpTotal = true;
+    }
+
+    const parsed = parseNumberString(bestResult.number, state.country);
+    updatePlate(parsed);
+
+    state.balance = lastBalance;
+    state.level = lastLevel;
+    state.xp = lastXp;
+    state.xpNeeded = lastXpNeeded;
+    updateUI();
+
+    let msg = '';
+    const totalM = bestResult.total_mult || 1;
+    if (totalM > 1) {
+      msg += '🔥 Множитель ×' + totalM + '\n';
+      msg += 'Цифры: +' + (bestResult.digit_mult || 0)
+           + ' | Буквы: +' + (bestResult.series_mult || 0)
+           + ' | Регион: +' + (bestResult.region_mult || 0) + '\n';
+      msg += 'База: ' + (bestResult.base_price || 0).toLocaleString('ru')
+           + ' ₽ → ' + (bestResult.final_price || 0).toLocaleString('ru') + ' ₽\n';
+    }
+    if (totalEarned > 0) msg += 'Продано · +' + totalEarned.toLocaleString('ru') + ' ₽';
+    if (garageCount > 0) {
+      if (msg) msg += '\n';
+      msg += '🏠 В гараж: ' + garageCount + ' шт.';
+    }
+    if (totalCount > 1) {
+      if (msg) msg += '\n';
+      msg += 'Круток: ' + totalCount;
+    }
+    if (leveledUpTotal) msg += '\n🎉 Новый уровень: ' + state.level + '!';
+
+    const colorMap = {
+      common: 'rar-common', uncommon: 'rar-rare',
+      rare: 'rar-rare', epic: 'rar-epic', legend: 'rar-legend'
+    };
+    showPopup(bestResult.rarity_name, bestResult.number, msg, colorMap[bestResult.rarity] || '');
+
+    loadGarage();
+
+  } catch (e) {
+    console.error(e);
+    showPopup('Ошибка', '', e.message || 'Не удалось прокрутить', '');
+  } finally {
+    state.spinning = false;
+    document.getElementById('spinBtn').disabled = false;
+  }
+}
+
+// ===== ПЛАШКА =====
+function updatePlate(n) {
+  document.getElementById('p-l1').textContent = n.l1 || '';
+  document.getElementById('p-num').textContent = n.digits;
+  document.getElementById('p-l2').textContent = n.l2 || '';
+  document.getElementById('p-l3').textContent = n.l3 || '';
+  document.getElementById('p-region').textContent = n.region;
+  document.getElementById('plate').classList.remove('plate-empty');
+
+  const label = document.querySelector('.r-label');
+  const flag = document.querySelector('.flag-sm');
+  if (state.country === 'by') {
+    label.textContent = 'BY';
+    flag.textContent = '🇧🇾';
+  } else {
+    label.textContent = 'RUS';
+    flag.textContent = '🇷🇺';
+  }
+}
+
+// ===== UI =====
+function updateUI() {
+  document.getElementById('balance').textContent = state.balance.toLocaleString('ru') + ' ₽';
+  document.getElementById('lvlNum').textContent = state.level;
+  const need = state.xpNeeded;
+  document.getElementById('lvlBar').style.width = Math.min(100, (state.xp / need) * 100) + '%';
+  const total = state.rarityPrice * state.multiplier;
+  document.getElementById('spinPrice').textContent = total.toLocaleString('ru') + ' ₽';
+  document.getElementById('spinBtn').disabled = state.spinning || state.balance < total;
+}
+
+// ===== ГАРАЖ =====
+const RARITY_NAMES = {
+  common: 'Обычная', uncommon: 'Необычная',
+  rare: 'Редкая', epic: 'Эпическая', legend: 'Легендарная'
+};
+const RARITY_COLORS = {
+  common: 'rar-common', uncommon: 'rar-rare',
+  rare: 'rar-rare', epic: 'rar-epic', legend: 'rar-legend'
+};
+
+async function loadGarage() {
+  try {
+    const items = await apiGet('/api/garage');
+    renderGarage(items);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function renderGarage(items) {
+  const list = document.getElementById('garageList');
+  document.getElementById('garageCount').textContent = items.length;
+
+  if (items.length === 0) {
+    list.innerHTML = '<div class="garage-empty"><span class="ge-icon">🏠</span>Гараж пуст<br>Крути редкие номера — они падают сюда</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(item => {
+    const borderColor = item.rarity === 'legend' ? '#ffd700'
+                      : item.rarity === 'epic' ? '#ba68c8' : '#4fc3f7';
+    return '<div class="garage-item" style="border-left-color:' + borderColor + '">' +
+      '<div>' +
+        '<div class="gi-num">' + item.number + '</div>' +
+        '<div class="gi-rar ' + (RARITY_COLORS[item.rarity] || '') + '">' +
+          (RARITY_NAMES[item.rarity] || item.rarity) +
+        '</div>' +
+      '</div>' +
+      '<button class="gi-sell" onclick="sellFromGarage(' + item.id + ')">' +
+        'Продать ' + item.price.toLocaleString('ru') + '₽' +
+      '</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function sellFromGarage(id) {
+  try {
+    const data = await apiPost('/api/sell/' + id);
+    state.balance = Number(data.balance);
+    updateUI();
+    loadGarage();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function sellAllGarage() {
+  try {
+    const items = await apiGet('/api/garage');
+    if (items.length === 0) return;
+    let totalEarned = 0;
+    for (const item of items) {
+      const data = await apiPost('/api/sell/' + item.id);
+      totalEarned += data.earned;
+      state.balance = Number(data.balance);
+    }
+    updateUI();
+    loadGarage();
+    showPopup('Гараж продан', '', 'Всего: +' + totalEarned.toLocaleString('ru') + ' ₽', 'rar-rare');
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+// ===== ВКЛАДКИ =====
+function switchTab(view) {
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.view === view);
+  });
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.toggle('active', v.id === 'view-' + view);
+  });
+  if (view === 'garage') loadGarage();
+}
+
+// ===== КОЛЕСО =====
+const WHEEL_PRIZES = [
+  { text: '1 000 ₽', type: 'money', value: 1000 },
+  { text: 'Удача ×25 (1ч)', type: 'luck', hours: 1 },
+  { text: 'Крутка ×20', type: 'free', count: 20 },
+  { text: '5 000 ₽', type: 'money', value: 5000 },
+  { text: 'Удача ×25 (2ч)', type: 'luck', hours: 2 },
+  { text: 'Крутка ×25', type: 'free', count: 25 },
+  { text: '10 000 ₽', type: 'money', value: 10000 },
+  { text: 'Крутка ×30', type: 'free', count: 30 }
+];
+
+let wheelSpinning = false;
+
+function spinWheel() {
+  if (wheelSpinning) return;
+  wheelSpinning = true;
+  const btn = document.getElementById('wheelSpinBtn');
+  btn.disabled = true;
+  document.getElementById('wheelResult').textContent = '';
+
+  const wheel = document.getElementById('wheel');
+  const randomDeg = 720 + Math.floor(Math.random() * 360);
+  wheel.style.transform = 'rotate(' + randomDeg + 'deg)';
+
+  setTimeout(() => {
+    const prize = WHEEL_PRIZES[Math.floor(Math.random() * WHEEL_PRIZES.length)];
+    document.getElementById('wheelResult').textContent = '🎉 ' + prize.text;
+    wheelSpinning = false;
+    btn.disabled = false;
+    wheel.style.transition = 'none';
+    wheel.style.transform = 'rotate(0deg)';
+    setTimeout(() => {
+      wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+    }, 50);
+  }, 4000);
+}
+
+// ===== МОДАЛКИ =====
+function showPopup(rar, num, msg, colorClass) {
+  document.getElementById('pop-rar').textContent = rar;
+  document.getElementById('pop-rar').className = 'popup-rar ' + (colorClass || '');
+  const numEl = document.getElementById('pop-num');
+  if (num) { numEl.textContent = num; numEl.style.display = 'inline-block'; }
+  else { numEl.style.display = 'none'; }
+  document.getElementById('pop-msg').textContent = msg;
+  document.getElementById('popup').classList.add('show');
+}
+function closePopup() { document.getElementById('popup').classList.remove('show'); }
+
+function openMenu() { document.getElementById('menuModal').classList.add('show'); }
+function openCountry() { document.getElementById('countryModal').classList.add('show'); }
+function openRarity() { document.getElementById('rarityModal').classList.add('show'); }
+function openMult() { document.getElementById('multModal').classList.add('show'); }
+
+function closeModal(e, id) {
+  if (!e || e.target.id === id) {
+    document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+  }
+}
+
+function setCountry(code, name, flag) {
+  state.country = code;
+  state.countryName = name;
+  state.countryFlag = flag;
+  document.querySelectorAll('#countryModal .mode-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('country-' + code).classList.add('active');
+  document.querySelectorAll('.setting')[0].textContent = flag + ' ' + name;
+  closeModal();
+}
+
+function setRarity(key, name, price) {
+  state.rarity = key;
+  state.rarityName = name;
+  state.rarityPrice = price;
+  document.querySelectorAll('#rarityModal .mode-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.rar === key);
+  });
+  document.querySelectorAll('.setting')[1].textContent = '💎 ' + name;
+  updateUI();
+  closeModal();
+}
+
+function setMult(n) {
+  state.multiplier = n;
+  document.querySelectorAll('#multModal .mode-item').forEach(el => {
+    el.classList.toggle('active', +el.dataset.mult === n);
+  });
+  document.querySelectorAll('.setting')[2].textContent = '×' + n;
+  updateUI();
+  closeModal();
+}
+
+// ===== СТАРТ =====
+loadProfile();
+</script>
+</body>
+</html>
