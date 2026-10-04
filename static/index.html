@@ -157,8 +157,21 @@
     align-items: center; justify-content: center;
     padding: 20px;
   }
+  .wheel-wrap {
+    position: relative;
+    width: 300px; height: 300px;
+  }
+  .wheel-pointer {
+    position: absolute;
+    top: -18px; left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px;
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700;
+    z-index: 5;
+  }
   .wheel {
-    width: 280px; height: 280px;
+    width: 300px; height: 300px;
     border-radius: 50%;
     background: conic-gradient(
       #ff6b6b 0deg 45deg,
@@ -173,7 +186,7 @@
     border: 8px solid #1c1c24;
     position: relative;
     box-shadow: 0 0 30px rgba(74,222,128,0.4);
-    transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+    transition: transform 4.2s cubic-bezier(0.17, 0.67, 0.12, 0.99);
   }
   .wheel-center {
     position: absolute; top: 50%; left: 50%;
@@ -183,6 +196,30 @@
     display: flex; align-items: center; justify-content: center;
     font-size: 28px;
     border: 4px solid #4ade80;
+    z-index: 3;
+  }
+  .wheel-labels {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+  .wheel-label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: 0 0;
+    font-size: 10px;
+    font-weight: 900;
+    color: #0f0f14;
+    text-shadow: 0 0 4px rgba(255,255,255,0.7);
+    white-space: nowrap;
+    width: 130px;
+    text-align: right;
+    padding-right: 4px;
+    line-height: 1;
+    height: 12px;
+    margin-top: -6px;
   }
   .wheel-spin-btn {
     margin-top: 24px;
@@ -342,8 +379,12 @@
 
 <div class="view" id="view-wheel">
   <div class="wheel-container">
-    <div class="wheel" id="wheel">
-      <div class="wheel-center">🍀</div>
+    <div class="wheel-wrap">
+      <div class="wheel-pointer">▼</div>
+      <div class="wheel" id="wheel">
+        <div class="wheel-labels" id="wheelLabels"></div>
+        <div class="wheel-center">🍀</div>
+      </div>
     </div>
     <button class="wheel-spin-btn" id="wheelSpinBtn" onclick="spinWheel()">Вращать колесо</button>
     <div class="wheel-result" id="wheelResult"></div>
@@ -439,20 +480,16 @@ if (!USER_ID) {
     '<div class="not-tg">' +
     '<h2>🚫 Открой игру через Telegram</h2>' +
     '<p>Эта игра работает только внутри Telegram-бота.</p>' +
-    '<p>Перейди в <b>@russianplates_bot</b> и нажми кнопку «Играть».</p>' +
+    '<p>Перейди в <b>@numberok_game_bot</b> и нажми кнопку «Играть».</p>' +
     '</div>';
 } else {
-  // ===== ИНИЦИАЛИЗАЦИЯ ИГРЫ (только если в Telegram) =====
   initGame();
 }
 
 function initGame() {
 
-// ===== API =====
 async function apiGet(path) {
-  const res = await fetch(path, {
-    headers: { 'X-User-Id': String(USER_ID) }
-  });
+  const res = await fetch(path, { headers: { 'X-User-Id': String(USER_ID) } });
   if (!res.ok) throw new Error('API error: ' + res.status);
   return res.json();
 }
@@ -469,23 +506,14 @@ async function apiPost(path) {
   return res.json();
 }
 
-// ===== СОСТОЯНИЕ =====
 let state = {
-  balance: 0,
-  level: 1,
-  xp: 0,
-  xpNeeded: 10,
-  country: 'ru',
-  countryName: 'Россия',
-  countryFlag: '🇷🇺',
-  rarity: 'any',
-  rarityName: 'Любая',
-  rarityPrice: 1000,
-  multiplier: 1,
-  spinning: false
+  balance: 0, level: 1, xp: 0, xpNeeded: 10,
+  country: 'ru', countryName: 'Россия', countryFlag: '🇷🇺',
+  rarity: 'any', rarityName: 'Любая', rarityPrice: 1000,
+  multiplier: 1, spinning: false,
+  luckMultiplier: 1, luckEndTime: 0, freeSpins: 0
 };
 
-// ===== ЗАГРУЗКА ПРОФИЛЯ =====
 async function loadProfile() {
   try {
     const data = await apiGet('/api/profile');
@@ -500,7 +528,6 @@ async function loadProfile() {
   }
 }
 
-// ===== УТИЛИТЫ =====
 const LETTERS_RU = ['А','В','Е','К','М','Н','О','Р','С','Т','У','Х'];
 const LETTERS_BY = ['A','B','C','E','I','K','M','H','O','P','T','X'];
 const REGIONS_RU = ['01','02','23','32','47','52','55','64','77','78','99','777','799'];
@@ -522,29 +549,16 @@ function parseNumberString(numStr, country) {
   if (country === 'by') {
     const parts = numStr.split(' ');
     const lettersPart = parts[1].split('-');
-    return {
-      digits: parts[0],
-      l1: lettersPart[0][0],
-      l2: lettersPart[0][1],
-      l3: '',
-      region: lettersPart[1],
-      format: 'by'
-    };
+    return { digits: parts[0], l1: lettersPart[0][0], l2: lettersPart[0][1],
+      l3: '', region: lettersPart[1], format: 'by' };
   }
   const parts = numStr.split(' ');
   const lettersPart = parts[0];
   const region = parts[1];
-  return {
-    l1: lettersPart[0],
-    digits: lettersPart.slice(1, 4),
-    l2: lettersPart[4],
-    l3: lettersPart[5],
-    region,
-    format: 'ru'
-  };
+  return { l1: lettersPart[0], digits: lettersPart.slice(1, 4),
+    l2: lettersPart[4], l3: lettersPart[5], region, format: 'ru' };
 }
 
-// ===== КРУТКА =====
 async function doSpin() {
   if (state.spinning) return;
   state.spinning = true;
@@ -646,7 +660,6 @@ async function finishSpinFromServer() {
   }
 }
 
-// ===== ПЛАШКА =====
 function updatePlate(n) {
   document.getElementById('p-l1').textContent = n.l1 || '';
   document.getElementById('p-num').textContent = n.digits;
@@ -658,15 +671,12 @@ function updatePlate(n) {
   const label = document.querySelector('.r-label');
   const flag = document.querySelector('.flag-sm');
   if (state.country === 'by') {
-    label.textContent = 'BY';
-    flag.textContent = '🇧🇾';
+    label.textContent = 'BY'; flag.textContent = '🇧🇾';
   } else {
-    label.textContent = 'RUS';
-    flag.textContent = '🇷🇺';
+    label.textContent = 'RUS'; flag.textContent = '🇷🇺';
   }
 }
 
-// ===== UI =====
 function updateUI() {
   document.getElementById('balance').textContent = state.balance.toLocaleString('ru') + ' ₽';
   document.getElementById('lvlNum').textContent = state.level;
@@ -677,7 +687,6 @@ function updateUI() {
   document.getElementById('spinBtn').disabled = state.spinning || state.balance < total;
 }
 
-// ===== ГАРАЖ =====
 const RARITY_NAMES = {
   common: 'Обычная', uncommon: 'Необычная',
   rare: 'Редкая', epic: 'Эпическая', legend: 'Легендарная'
@@ -691,34 +700,25 @@ async function loadGarage() {
   try {
     const items = await apiGet('/api/garage');
     renderGarage(items);
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 }
 
 function renderGarage(items) {
   const list = document.getElementById('garageList');
   document.getElementById('garageCount').textContent = items.length;
-
   if (items.length === 0) {
     list.innerHTML = '<div class="garage-empty"><span class="ge-icon">🏠</span>Гараж пуст<br>Крути редкие номера — они падают сюда</div>';
     return;
   }
-
   list.innerHTML = items.map(item => {
     const borderColor = item.rarity === 'legend' ? '#ffd700'
                       : item.rarity === 'epic' ? '#ba68c8' : '#4fc3f7';
     return '<div class="garage-item" style="border-left-color:' + borderColor + '">' +
-      '<div>' +
-        '<div class="gi-num">' + item.number + '</div>' +
+      '<div><div class="gi-num">' + item.number + '</div>' +
         '<div class="gi-rar ' + (RARITY_COLORS[item.rarity] || '') + '">' +
-          (RARITY_NAMES[item.rarity] || item.rarity) +
-        '</div>' +
-      '</div>' +
+          (RARITY_NAMES[item.rarity] || item.rarity) + '</div></div>' +
       '<button class="gi-sell" onclick="window.sellFromGarage(' + item.id + ')">' +
-        'Продать ' + item.price.toLocaleString('ru') + '₽' +
-      '</button>' +
-    '</div>';
+        'Продать ' + item.price.toLocaleString('ru') + '₽</button></div>';
   }).join('');
 }
 
@@ -728,9 +728,7 @@ window.sellFromGarage = async function(id) {
     state.balance = Number(data.balance);
     updateUI();
     loadGarage();
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 };
 
 async function sellAllGarage() {
@@ -746,12 +744,9 @@ async function sellAllGarage() {
     updateUI();
     loadGarage();
     showPopup('Гараж продан', '', 'Всего: +' + totalEarned.toLocaleString('ru') + ' ₽', 'rar-rare');
-  } catch (e) {
-    console.error(e);
-  }
+  } catch (e) { console.error(e); }
 }
 
-// ===== ВКЛАДКИ =====
 function switchTab(view) {
   document.querySelectorAll('.tab').forEach(t => {
     t.classList.toggle('active', t.dataset.view === view);
@@ -762,17 +757,32 @@ function switchTab(view) {
   if (view === 'garage') loadGarage();
 }
 
-// ===== КОЛЕСО =====
+// ===== КОЛЕСО ФОРТУНЫ =====
 const WHEEL_PRIZES = [
-  { text: '1 000 ₽', type: 'money', value: 1000 },
-  { text: 'Удача ×25 (1ч)', type: 'luck', hours: 1 },
-  { text: 'Крутка ×20', type: 'free', count: 20 },
-  { text: '5 000 ₽', type: 'money', value: 5000 },
-  { text: 'Удача ×25 (2ч)', type: 'luck', hours: 2 },
-  { text: 'Крутка ×25', type: 'free', count: 25 },
-  { text: '10 000 ₽', type: 'money', value: 10000 },
-  { text: 'Крутка ×30', type: 'free', count: 30 }
+  { text: '1 000 ₽', short: '1 000 ₽', type: 'money', value: 1000 },
+  { text: '5 000 ₽', short: '5 000 ₽', type: 'money', value: 5000 },
+  { text: '10 000 ₽', short: '10 000 ₽', type: 'money', value: 10000 },
+  { text: 'Удача ×25 (1ч)', short: 'Удача ×25', type: 'luck', hours: 1, mult: 25 },
+  { text: 'Удача ×25 (2ч)', short: 'Удача ×25', type: 'luck', hours: 2, mult: 25 },
+  { text: 'Крутка ×20', short: 'Крутка ×20', type: 'free', count: 20 },
+  { text: 'Крутка ×25', short: 'Крутка ×25', type: 'free', count: 25 },
+  { text: 'Крутка ×30', short: 'Крутка ×30', type: 'free', count: 30 }
 ];
+
+function renderWheelLabels() {
+  const container = document.getElementById('wheelLabels');
+  if (!container) return;
+  const count = WHEEL_PRIZES.length;
+  const angleStep = 360 / count;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const angle = i * angleStep + angleStep / 2;
+    const rotate = angle - 90;
+    html += '<div class="wheel-label" style="transform: rotate(' + rotate + 'deg) translate(0, -6px)">' +
+              WHEEL_PRIZES[i].short + '</div>';
+  }
+  container.innerHTML = html;
+}
 
 let wheelSpinning = false;
 
@@ -783,21 +793,43 @@ function spinWheel() {
   btn.disabled = true;
   document.getElementById('wheelResult').textContent = '';
 
+  const prizeIndex = Math.floor(Math.random() * WHEEL_PRIZES.length);
+  const prize = WHEEL_PRIZES[prizeIndex];
+
+  const angleStep = 360 / WHEEL_PRIZES.length;
+  const targetAngle = (prizeIndex * angleStep) + (angleStep / 2);
+  const fullTurns = 5 * 360;
+  const finalDeg = fullTurns + (360 - targetAngle);
+
   const wheel = document.getElementById('wheel');
-  const randomDeg = 720 + Math.floor(Math.random() * 360);
-  wheel.style.transform = 'rotate(' + randomDeg + 'deg)';
+  wheel.style.transform = 'rotate(' + finalDeg + 'deg)';
 
   setTimeout(() => {
-    const prize = WHEEL_PRIZES[Math.floor(Math.random() * WHEEL_PRIZES.length)];
-    document.getElementById('wheelResult').textContent = '🎉 ' + prize.text;
+    applyWheelPrize(prize);
     wheelSpinning = false;
     btn.disabled = false;
     wheel.style.transition = 'none';
     wheel.style.transform = 'rotate(0deg)';
     setTimeout(() => {
-      wheel.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
+      wheel.style.transition = 'transform 4.2s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
     }, 50);
-  }, 4000);
+  }, 4300);
+}
+
+function applyWheelPrize(prize) {
+  const result = document.getElementById('wheelResult');
+  if (prize.type === 'money') {
+    state.balance += prize.value;
+    result.textContent = '🎉 Выигрыш: ' + prize.text;
+  } else if (prize.type === 'luck') {
+    state.luckMultiplier = prize.mult;
+    state.luckEndTime = Date.now() + prize.hours * 3600 * 1000;
+    result.textContent = '🍀 Удача ×' + prize.mult + ' на ' + prize.hours + ' ч!';
+  } else if (prize.type === 'free') {
+    state.freeSpins = (state.freeSpins || 0) + prize.count;
+    result.textContent = '🎰 Бесплатных круток: +' + prize.count;
+  }
+  updateUI();
 }
 
 // ===== МОДАЛКИ =====
@@ -855,7 +887,6 @@ function setMult(n) {
   closeModal();
 }
 
-// ===== ЭКСПОРТ В ГЛОБАЛЬНУЮ ОБЛАСТЬ (для onclick в HTML) =====
 window.switchTab = switchTab;
 window.doSpin = doSpin;
 window.openMenu = openMenu;
@@ -870,8 +901,8 @@ window.setMult = setMult;
 window.sellAllGarage = sellAllGarage;
 window.spinWheel = spinWheel;
 
-// ===== СТАРТ =====
 loadProfile();
+renderWheelLabels();
 
 }
 </script>

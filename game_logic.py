@@ -17,40 +17,30 @@ REGIONS_RU = [
 REGIONS_BY = ['1','2','3','4','5','6','7']
 
 
-# ===== МНОЖИТЕЛИ ЦИФР =====
 def digit_multiplier(digits):
     if digits == '777': return 9
     if digits == '001': return 8
     if digits == '007': return 7
     if digits in ('111','222','333','444','555','666','888','999'): return 5
-    # круглые: 100, 200, ..., 900
     if digits[0] in '123456789' and digits[1:] == '00': return 3
-    # ровные: 010, 020, ..., 090
     if digits[0] == '0' and digits[1] in '123456789' and digits[2] == '0': return 2
     return 0
 
 
-# ===== МНОЖИТЕЛИ БУКВ (серии РФ) =====
 SERIES_RU = {
     'АМР': 9,
     'ЕКХ': 8,
     'ААА': 8,
-    'АММ': 5,
-    'АМО': 5,
+    'АММ': 5, 'АМО': 5,
     'ВВВ': 5, 'ЕЕЕ': 5, 'ККК': 5, 'МММ': 5, 'ННН': 5,
     'РРР': 5, 'ССС': 5, 'ТТТ': 5, 'УУУ': 5, 'ХХХ': 5,
     'ВОО': 3, 'СММ': 3,
     'ООО': 2,
 }
 
-SERIES_BY = {
-    'AA': 8,
-    'BB': 5,
-    'AB': 3,
-}
+SERIES_BY = {'AA': 8, 'BB': 5, 'AB': 3}
 
 
-# ===== МНОЖИТЕЛИ РЕГИОНОВ =====
 def region_multiplier_ru(region):
     top = ['77','99','97','177','199','197','777','799','797']
     high = ['01','02','23','50','78','98','178','198','750','790','102','103']
@@ -61,18 +51,18 @@ def region_multiplier_ru(region):
     return 0
 
 def region_multiplier_by(region):
-    if region == '7': return 9  # Минск
-    if region == '1': return 5  # Брест
+    if region == '7': return 9
+    if region == '1': return 5
     return 0
 
 
-# ===== РЕДКОСТИ =====
+# ===== РЕДКОСТИ — ОЧЕНЬ МАЛЕНЬКИЕ ШАНСЫ =====
 RARITY = {
-    'common':   {'name': 'Обычная',     'chance': 0.80,  'price': 1000,   'xp': 1,   'to_garage': False},
-    'uncommon': {'name': 'Необычная',   'chance': 0.15,  'price': 5000,   'xp': 3,   'to_garage': False},
-    'rare':     {'name': 'Редкая',      'chance': 0.04,  'price': 20000,  'xp': 10,  'to_garage': True},
-    'epic':     {'name': 'Эпическая',   'chance': 0.008, 'price': 80000,  'xp': 30,  'to_garage': True},
-    'legend':   {'name': 'Легендарная', 'chance': 0.002, 'price': 400000, 'xp': 100, 'to_garage': True},
+    'common':   {'name': 'Обычная',     'chance': 0.94,     'price': 1000,   'xp': 1,   'to_garage': False},
+    'uncommon': {'name': 'Необычная',   'chance': 0.045,    'price': 5000,   'xp': 3,   'to_garage': False},
+    'rare':     {'name': 'Редкая',      'chance': 0.012,    'price': 20000,  'xp': 10,  'to_garage': True},
+    'epic':     {'name': 'Эпическая',   'chance': 0.0025,   'price': 80000,  'xp': 30,  'to_garage': True},
+    'legend':   {'name': 'Легендарная', 'chance': 0.0005,   'price': 400000, 'xp': 100, 'to_garage': True},
 }
 ORDER = ['common', 'uncommon', 'rare', 'epic', 'legend']
 
@@ -93,10 +83,9 @@ def roll_rarity(guarantee='any'):
 
 
 def make_number_ru(rarity):
-    """Возвращает dict с данными о номере и множителях."""
-    # Пробуем выбить особую серию
     series = None
-    if random.random() < 0.01:  # 1% шанс особой серии
+    # Очень маленький шанс особой серии — 0.3%
+    if random.random() < 0.003:
         series = random.choice(list(SERIES_RU.keys()))
 
     if series:
@@ -110,7 +99,6 @@ def make_number_ru(rarity):
         number = f"{l1}{digits}{l2}{l3} {region}"
         series_mult = SERIES_RU[series]
     else:
-        # Обычная генерация
         if rarity == 'legend':
             letter = 'О' if random.random() < 0.5 else random.choice(LETTERS_RU)
             l1 = l2 = l3 = letter
@@ -121,8 +109,7 @@ def make_number_ru(rarity):
             if random.random() < 0.5:
                 l2 = l3 = l1
             else:
-                l2 = random.choice(LETTERS_RU)
-                l3 = l2
+                l2 = random.choice(LETTERS_RU); l3 = l2
             digits = random.choice(['111','222','333','444','555','666','888','999'])
             region = random.choice(['77','99','01','777','799','199'])
         elif rarity == 'rare':
@@ -152,22 +139,15 @@ def make_number_ru(rarity):
     final_price = base_price * total_mult
 
     return {
-        'number': number,
-        'digits': digits,
-        'region': region,
-        'series': series,
-        'digit_mult': dm,
-        'series_mult': series_mult,
-        'region_mult': rm,
-        'total_mult': total_mult,
-        'base_price': base_price,
-        'final_price': final_price,
+        'number': number, 'digits': digits, 'region': region, 'series': series,
+        'digit_mult': dm, 'series_mult': series_mult, 'region_mult': rm,
+        'total_mult': total_mult, 'base_price': base_price, 'final_price': final_price,
     }
 
 
 def make_number_by(rarity):
     series = None
-    if random.random() < 0.01:
+    if random.random() < 0.003:
         series = random.choice(list(SERIES_BY.keys()))
 
     if series:
@@ -178,9 +158,7 @@ def make_number_by(rarity):
         series_mult = SERIES_BY[series]
     else:
         if rarity in ('legend', 'epic'):
-            digits = '7777'
-            letters = 'AB'
-            region = '7'
+            digits = '7777'; letters = 'AB'; region = '7'
         else:
             digits = f"{random.randint(0, 9999):04d}"
             letters = random.choice(LETTERS_BY) + random.choice(LETTERS_BY)
@@ -196,16 +174,9 @@ def make_number_by(rarity):
     final_price = base_price * total_mult
 
     return {
-        'number': number,
-        'digits': digits,
-        'region': region,
-        'series': series,
-        'digit_mult': dm,
-        'series_mult': series_mult,
-        'region_mult': rm,
-        'total_mult': total_mult,
-        'base_price': base_price,
-        'final_price': final_price,
+        'number': number, 'digits': digits, 'region': region, 'series': series,
+        'digit_mult': dm, 'series_mult': series_mult, 'region_mult': rm,
+        'total_mult': total_mult, 'base_price': base_price, 'final_price': final_price,
     }
 
 
